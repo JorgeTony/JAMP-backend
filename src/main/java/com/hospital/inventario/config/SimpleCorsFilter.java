@@ -1,6 +1,10 @@
 package com.hospital.inventario.config;
 
-import jakarta.servlet.*;
+import jakarta.servlet.Filter;
+import jakarta.servlet.FilterChain;
+import jakarta.servlet.ServletException;
+import jakarta.servlet.ServletRequest;
+import jakarta.servlet.ServletResponse;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import org.springframework.core.Ordered;
@@ -20,10 +24,11 @@ public class SimpleCorsFilter implements Filter {
         HttpServletRequest request = (HttpServletRequest) req;
         HttpServletResponse response = (HttpServletResponse) res;
 
-        // 👇 origen de tu frontend en Railway
-        response.setHeader("Access-Control-Allow-Origin", "https://jamp-production.up.railway.app");
-        // Si quieres también localhost para pruebas, puedes usar:
-        // response.setHeader("Access-Control-Allow-Origin", request.getHeader("Origin"));
+        // 🔁 Tomamos el Origin que venga (frontend en Railway o localhost)
+        String origin = request.getHeader("Origin");
+        if (origin != null && !origin.isEmpty()) {
+            response.setHeader("Access-Control-Allow-Origin", origin);
+        }
 
         response.setHeader("Vary", "Origin");
         response.setHeader("Access-Control-Allow-Methods", "POST, GET, OPTIONS, DELETE, PUT");
@@ -33,9 +38,9 @@ public class SimpleCorsFilter implements Filter {
                 "Origin, X-Requested-With, Content-Type, Accept, Authorization"
         );
 
-        // Como NO usamos cookies, NO ponemos Access-Control-Allow-Credentials
+        // ❌ No usamos cookies, así que no hace falta Allow-Credentials
 
-        // Si es preflight, respondemos aquí mismo
+        // Preflight: respondemos aquí mismo
         if ("OPTIONS".equalsIgnoreCase(request.getMethod())) {
             response.setStatus(HttpServletResponse.SC_OK);
         } else {
