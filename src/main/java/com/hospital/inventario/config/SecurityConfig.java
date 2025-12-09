@@ -18,13 +18,6 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 
-// 👇 imports CORS
-import org.springframework.web.cors.CorsConfiguration;
-import org.springframework.web.cors.CorsConfigurationSource;
-import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
-
-import java.util.List;
-
 @Configuration
 @EnableWebSecurity
 @EnableMethodSecurity
@@ -55,15 +48,15 @@ public class SecurityConfig {
                                                    DaoAuthenticationProvider authenticationProvider) throws Exception {
 
         http
-            .cors(Customizer.withDefaults())   // 🔥 usa la config CORS de abajo
+            .cors(Customizer.withDefaults())   // 👈 usa config global de WebMvcConfigurer
             .csrf(csrf -> csrf.disable())
             .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
             .authorizeHttpRequests(authz -> authz
 
-                // ✅ Dejar pasar TODOS los OPTIONS (preflight)
+                // ✅ dejar pasar TODOS los OPTIONS
                 .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
 
-                // --- rutas públicas ---
+                // --- públicas ---
                 .requestMatchers("/auth/**", "/login", "/error").permitAll()
                 .requestMatchers("/css/**", "/js/**", "/images/**").permitAll()
                 .requestMatchers("/transacciones/api/**").permitAll()
@@ -83,24 +76,5 @@ public class SecurityConfig {
             .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class);
 
         return http.build();
-    }
-
-    // 🌍 CORS GLOBAL: permite todo mientras depuramos
-    @Bean
-    public CorsConfigurationSource corsConfigurationSource() {
-        CorsConfiguration config = new CorsConfiguration();
-
-        // Para pruebas: permitir cualquier origen
-        config.setAllowedOriginPatterns(List.of("*"));
-        // Métodos que aceptamos
-        config.setAllowedMethods(List.of("GET", "POST", "PUT", "DELETE", "OPTIONS"));
-        // Cualquier header
-        config.setAllowedHeaders(List.of("*"));
-        // No necesitamos cookies -> false
-        config.setAllowCredentials(false);
-
-        UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
-        source.registerCorsConfiguration("/**", config);
-        return source;
     }
 }
