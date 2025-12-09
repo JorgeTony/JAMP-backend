@@ -18,18 +18,23 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 
+// 👇 IMPORTS PARA CORS
+import org.springframework.web.cors.CorsConfiguration;
+import org.springframework.web.cors.CorsConfigurationSource;
+import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
+
+import java.util.List;
+
 @Configuration
 @EnableWebSecurity
 @EnableMethodSecurity
 public class SecurityConfig {
 
-    // 🔹 Bean de PasswordEncoder
     @Bean
     public PasswordEncoder passwordEncoder() {
         return new BCryptPasswordEncoder();
     }
 
-    // 🔹 Provider que usa UsuarioService + PasswordEncoder
     @Bean
     public DaoAuthenticationProvider authenticationProvider(UsuarioService usuarioService,
                                                             PasswordEncoder passwordEncoder) {
@@ -39,34 +44,29 @@ public class SecurityConfig {
         return authProvider;
     }
 
-    // 🔹 AuthenticationManager (lo usa tu controlador de login)
     @Bean
     public AuthenticationManager authenticationManager(AuthenticationConfiguration config) throws Exception {
         return config.getAuthenticationManager();
     }
 
-    // 🔹 Configuración principal de seguridad
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http,
                                                    JwtAuthenticationFilter jwtAuthenticationFilter,
                                                    DaoAuthenticationProvider authenticationProvider) throws Exception {
 
         http
-            .cors(Customizer.withDefaults())
+            .cors(Customizer.withDefaults()) // 👈 IMPORTANTE
             .csrf(csrf -> csrf.disable())
             .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
             .authorizeHttpRequests(authz -> authz
 
-                // --- Rutas PÚBLICAS ---
+                // ✅ Dejar pasar TODOS los OPTIONS (preflight)
+                .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
+
+                // --- Rutas públicas ---
                 .requestMatchers("/auth/**", "/login", "/error").permitAll()
                 .requestMatchers("/css/**", "/js/**", "/images/**").permitAll()
-
-                // ✅ Kardex / transacciones: totalmente libre mientras depuramos
                 .requestMatchers("/transacciones/api/**").permitAll()
-
-                // --- Ejemplos de otras reglas (ajusta según tu proyecto) ---
-                //.requestMatchers("/usuarios/**")
-                  //  .hasAuthority("ROLE_ADMIN")
 
                 .requestMatchers("/configuracion/**")
                     .hasAnyAuthority("ROLE_ADMIN", "ROLE_SUPERVISOR")
@@ -83,5 +83,32 @@ public class SecurityConfig {
             .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class);
 
         return http.build();
+    }
+
+    // 👇 CONFIG GLOBAL DE CORS
+    @Bean
+    public CorsConfigurationSource corsConfigurationSource() {
+        CorsConfiguration config = new CorsConfiguration();
+
+        config.setAllowedOrigins(List.of(
+            "https://jamp-production.up.railway.app", // frontend prod
+            "http://localhost:5173"                   // frontend dev
+        ));
+
+        config.setAllowedMethods(List.of("GET", "POST", "PUT", "DELETE", "OPTIONS"));
+
+        config.setAllowedHeaders(List.of(
+            "Authorization",
+            "Content-Type",
+            "X-Requested-With",
+            "Accept",
+            "Origin"
+        ));
+
+        config.setAllowCredentials(true);
+
+        UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
+        source.registerCorsConfiguration("/**", config);
+        return source;
     }
 }
