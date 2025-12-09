@@ -17,6 +17,15 @@ import java.util.Map;
 @RestController
 @RequestMapping("/auth")
 @CrossOrigin(origins = "*")
+public class AuthController {@RestController
+@RequestMapping("/auth")
+@CrossOrigin(
+    origins = {
+        "https://jamp-production.up.railway.app",
+        "http://localhost:5173"
+    },
+    allowCredentials = "true"
+)
 public class AuthController {
     
     @Autowired
